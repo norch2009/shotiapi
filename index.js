@@ -4,31 +4,28 @@ const app = express();
 
 app.use(express.json());
 
-// 👤 Author
 const AUTHOR = "April Manalo";
 
-// 🧩 TikTok Links
+// ✅ Predefined TikTok links
 const tiktokLinks = [
   "https://www.tiktok.com/@kigs.prismprincesses/video/7469451797128547602",
   "https://www.tiktok.com/@vix.max/video/7458826851557952774",
   "https://www.tiktok.com/@mrbeast/video/7279840834071438597"
 ];
 
-// 🔍 Scraper Function
-async function getTikTokData(url) {
-  if (!url || !url.startsWith("http")) {
-    return {
-      original_url: url,
-      error: "❌ Invalid or empty link",
-      author: AUTHOR
-    };
-  }
+// ✅ Randomly select one from the array
+function getRandomTikTokLink() {
+  const index = Math.floor(Math.random() * tiktokLinks.length);
+  return tiktokLinks[index];
+}
 
+// ✅ TikWM scraping function
+async function getTikTokData(url) {
   try {
     const api = `https://tikwm.com/api/?url=${encodeURIComponent(url)}`;
     const res = await axios.get(api, {
       headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+        "User-Agent": "Mozilla/5.0"
       }
     });
 
@@ -44,8 +41,8 @@ async function getTikTokData(url) {
 
     return {
       original_url: url,
-      video_url: data.data.play,
-      title: data.data.title || "No title",
+      video_url: data.data.hdplay || data.data.play || "❌ No video URL",
+      title: data.data.title || "Untitled",
       tiktok_author: data.data.author?.nickname || "Unknown",
       author: AUTHOR
     };
@@ -58,26 +55,26 @@ async function getTikTokData(url) {
   }
 }
 
-// 📡 API Endpoint
+// ✅ Main endpoint
 app.get("/shoti", async (req, res) => {
   const start = Date.now();
 
-  // Parallel fetch for better speed
-  const results = await Promise.all(tiktokLinks.map(getTikTokData));
-  const end = Date.now();
+  const selectedUrl = getRandomTikTokLink();
+  const result = await getTikTokData(selectedUrl);
+
+  const responseTime = `${Date.now() - start}ms`;
 
   res.json({
     status: "success",
     timestamp: new Date().toISOString(),
-    total_links: tiktokLinks.length,
-    response_time: `${end - start}ms`,
+    response_time: responseTime,
     generated_by: AUTHOR,
-    results
+    result
   });
 });
 
-// 🚀 Start Server
+// ✅ Run server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Shoti API by ${AUTHOR} running at http://localhost:${PORT}/shoti`);
+  console.log(`🚀 Shoti API by ${AUTHOR} running at http://localhost:${PORT}`);
 });
