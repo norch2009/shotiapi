@@ -4,24 +4,37 @@ const app = express();
 
 app.use(express.json());
 
-// 👤 Author of API
+// 👤 Author
 const AUTHOR = "April Manalo";
 
-// ✅ List of the TikTok links
+// 🧩 TikTok Links
 const tiktokLinks = [
-  "https://www.tiktok.com/@kigs.prismprincesses/video/7469451797128547602?is_from_webapp=1&sender_device=pc&web_id=7520861577470674439",
-  "https://www.tiktok.com/@vix.max/video/7458826851557952774?is_from_webapp=1&sender_device=pc&web_id=7520861577470674439",
-  ""
+  "https://www.tiktok.com/@kigs.prismprincesses/video/7469451797128547602",
+  "https://www.tiktok.com/@vix.max/video/7458826851557952774",
+  "https://www.tiktok.com/@mrbeast/video/7279840834071438597"
 ];
 
-// 🛠️ Getting video info from TikWM
+// 🔍 Scraper Function
 async function getTikTokData(url) {
+  if (!url || !url.startsWith("http")) {
+    return {
+      original_url: url,
+      error: "❌ Invalid or empty link",
+      author: AUTHOR
+    };
+  }
+
   try {
     const api = `https://tikwm.com/api/?url=${encodeURIComponent(url)}`;
-    const res = await axios.get(api);
+    const res = await axios.get(api, {
+      headers: {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64)"
+      }
+    });
+
     const data = res.data;
 
-    if (data.code !== 0 || !data.data || !data.data.play) {
+    if (data.code !== 0 || !data.data?.play) {
       return {
         original_url: url,
         error: "❌ Failed to fetch video",
@@ -45,30 +58,26 @@ async function getTikTokData(url) {
   }
 }
 
-// 📥 API Endpoint: /shoti
+// 📡 API Endpoint
 app.get("/shoti", async (req, res) => {
   const start = Date.now();
-  const results = [];
 
-  for (const url of tiktokLinks) {
-    const result = await getTikTokData(url);
-    results.push(result);
-  }
-
+  // Parallel fetch for better speed
+  const results = await Promise.all(tiktokLinks.map(getTikTokData));
   const end = Date.now();
-  const time = `${end - start}ms`;
 
   res.json({
     status: "success",
+    timestamp: new Date().toISOString(),
     total_links: tiktokLinks.length,
-    response_time: time,
+    response_time: `${end - start}ms`,
     generated_by: AUTHOR,
     results
   });
 });
 
-// 🚀 Run Server
+// 🚀 Start Server
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
-  console.log(`✅ Shoti API by ${AUTHOR} running at http://localhost:${PORT}`);
+  console.log(`✅ Shoti API by ${AUTHOR} running at http://localhost:${PORT}/shoti`);
 });
